@@ -2,9 +2,12 @@
 title: "hhh_script"
 author: "Kyle Kim"
 date: "3/19/2019"
-output:   
-  md_document:
-    variant: markdown_github
+output:
+ md_document:
+   variant: markdown_github
+ html_document:
+   toc: true
+   toc_float: true
 ---
 
 ```{r setup, include=FALSE}
