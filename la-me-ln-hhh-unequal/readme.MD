@@ -10,4 +10,4 @@
 * **[original_data](original_data)** - Raw data for homeless housing and council district median income numbers
 * **[revised_data](revised_data)** - Cleaned data and where shapefiles are placed
 * **script.rmd** - R Markdown files used to generate exploratory data analysis
-
+* **View the web page version** (https://kyleykim.github.io/R_Scripts/la-me-ln-hhh-unequal/script.html)
