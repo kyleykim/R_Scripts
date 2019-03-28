@@ -1,0 +1,76 @@
+---
+title: "scraper"
+author: "Kyle Kim"
+date: "3/21/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Scrape script
+
+```{r scraper}
+#install.packages("tidyverse")
+#install.packages("rvest")
+#install.packages("R.utils")
+#install.packages("stringr")
+#install.packages("rebus")
+#install.packages("lubridate")
+
+
+# General-purpose data wrangling
+library(tidyverse)
+ # Parsing of HTML/XML files  
+library(rvest)
+ # String manipulation
+    library(stringr)   
+
+    # Verbose regular expressions
+    library(rebus)     
+
+    # Eases DateTime manipulation
+    library(lubridate)
+
+library(R.utils)
+
+base_url <- read_html("http://cdfdata.fire.ca.gov/incidents/incidents_archived?archive_year=2018&pc=5000")
+
+wildfires <- base_url  %>%
+  html_nodes("table") %>% 
+  html_text()  %>% 
+  unlist()
+
+
+
+
+
+
+
+base_url <- html("http://cdfdata.fire.ca.gov/incidents/incidents_archived?")
+suffix <- "archive_year="
+suffix2 <- "&pc=5000"
+years <- c(2003:2019)
+
+urls <- paste0(base_url, suffix, years_list, suffix2)
+
+
+scraped_wildfires <- function(html){
+  incidents <- read_html(urls) %>% 
+    #identifies HTML wrappers + calls node based on CSS class
+    html_nodes(".incident_table") %>% 
+    html_attr("href") %>% 
+    # Extract the raw text as a list
+    html_text()                       
+}
+
+
+
+
+
+
+
+
+```
+

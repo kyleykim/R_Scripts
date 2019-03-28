@@ -1,0 +1,377 @@
+---
+title: "la-me-ln-california-fire-aircraft-delay"
+author: "Kyle Kim"
+date: "3/22/2019"
+output:
+ md_document:
+   variant: markdown_github
+ html_document:
+   toc: true
+   toc_float: true
+   code_folding: hide
+---
+
+This analysis and visualization of charting when wildfires in California have started was used to assist the reporting of the story **[me-california-fire-aircraft-delay]**(https://snap.latimes.com/story/edit/la-me-ln-california-fire-aircraft-delay-20190130), which looks at the efficacy and effectiveness of fire aircraft deployment. 
+
+The analysis looks at [CAL FIRE's incidents database](http://cdfdata.fire.ca.gov/incidents/incidents_archived?archive_year=2018), which provides fire incident information for fires within and outside the agency's jurisdictions back to 2003. [Go here](http://cdfdata.fire.ca.gov/incidents/incidents_disclaimer) if you'd like to read more information about the data.
+
+## Setup
+```{r message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Run install.packages('packagename') if required
+library(tidyverse)
+library(here)
+library(magrittr)
+library(ggplot2)
+library(extrafont)
+library(forcats)
+library(lubridate)
+library(scales)
+
+
+# Double check it is correctly setting your wd
+here::here()
+
+# Call in data
+master_data_raw <- read_csv(here::here("input/wildfires.csv"))
+
+master_data_raw
+```
+
+## Clean Data WIP
+```{r clean_data, eval=FALSE, include=FALSE}
+# Create a new dataframe to start cleaning
+master_data_cleaning <-  master_data_raw  %>%
+      as.vector()
+
+# RegEx key taken from https://rstudio-pubs-static.s3.amazonaws.com/74603_76cd14d5983f47408fdf0b323550b846.html
+# ^: matches the start of the string
+# $: matches the end of the string
+# \b: matches the empty string at either edge of a word. Don’t confuse it with ^ $ which marks the edge of a string.
+# \B: matches the empty string provided it is not at an edge of a word.
+
+#str_replace_all(master_data_cleaning, "[^\\xe5\\xca]+", "")
+gsub("[\xe5\\xca\]", "", master_data_cleaning)
+master_data_cleaning <- as.vector(master_data_cleaning)
+(as.vector(master_data_cleaning))
+
+str_extract(master_data_cleaning, "åÊ")
+
+str_replace_all(master_data_cleaning, "[åÊ]", "")
+str_replace_all(master_data_cleaning, "^åÊ$", "")
+str_replace_all(master_data_cleaning, "[^\\xe5\\xca$]", "")
+master_data_cleaning
+
+fruits <- c("one apple\\xe5\\xca", "two pears<e5><ca>", "three bananasåÊ")
+str_extract(fruits, "åÊ")
+str_replace_all(fruits, "åÊ", "")
+fruits
+
+
+```
+
+## Data cleaning
+```{r data, include=FALSE}
+# Using temp alt while I figure out how to clean non english characters in data
+master_data_cleaning <- read_csv("input/wildfires_alt.csv")
+
+# Take only columns we need
+temp_cols_subset <- select(master_data_cleaning, name, acres_burned, date_only, time_24hh)
+
+# Double check column types
+lapply(temp_cols_subset , class) 
+
+# Convert date column so it actually reads as dates
+temp_cols_subset$date_only <-  as.Date(temp_cols_subset$date_only, "%m/%d/%y")
+
+# Create a temporary dataframe that do not have missing data for the acres burned column
+temp_no_nas <- temp_cols_subset[complete.cases(temp_cols_subset $acres_burned), ]
+
+# Check that it removed correctly // observation number and last index number  in global environment should match
+na_check <- na.omit(temp_no_nas$acres_burned) 
+
+# There's a few rows with dirty dates (1969) that should be removed
+temp_clean_1969 <- temp_no_nas[format(temp_no_nas$date_only,'%Y') != "1969", ]
+
+# Create new variable for cleaned df
+master_data_cleaned <- temp_clean_1969 
+
+# Add new column in df with years only
+master_data_cleaned$year_only <- 
+substring(master_data_cleaned$date_only,1,4)
+
+```
+
+## Analysis
+Based on [CAL FIRE's general flight rules and operations handbook](http://calfireweb.fire.ca.gov/library/handbooks/8300/8362.pdf), an aircraft's window of operation is during "daylight hours" (pg 11) and a pilot of a single-pilot aircraft is limited to seven hours of flight time in a 24-hour period (pg 10).
+
+The reporter said according to CALFIRE, the general hours of operation are between 10 AM and 5PM throughout the year. We will use those hours to do some analysis.
+
+```{r analysis_1, include=FALSE}
+# Base summary of data
+summary(master_data_cleaned)
+
+# How many fires occurred during hours of operation?
+fires_during_hours <- master_data_cleaned %>%
+filter(hms(time_24hh) >= hms("10:00:00") & hms(time_24hh) <= hms("17:00:00"))
+
+# How many fires occurred outside hours of operation?
+fires_outside_hours <- master_data_cleaned %>%
+filter(hms(time_24hh) < hms("10:00:00") | hms(time_24hh) > hms("17:00:00"))
+```
+
+Out of the 1982 CALFIRE incidents scraped, *1577* were fire incidents that provided at least burn acreage and start time. 
+
+*1131* (71.7) wildfires had a reported start time that fell within the 10AM to 5PM window of operation. *466* (28.3%) did not.
+
+```{r chart}
+ggplot(data = master_data_cleaned, aes(x = time_24hh, y = acres_burned)) +
+geom_point(
+  data = fires_outside_hours, aes(x = time_24hh, y = acres_burned),
+  shape = 21,
+  stroke = .5,
+  fill = "#b75a36",
+  color = "#b75a36",
+  alpha = 0.5
+) +
+geom_point(
+  data = fires_during_hours, aes(x = time_24hh, y = acres_burned),
+  shape = 21,
+  stroke = .5,
+  fill = "#f7bb4f",
+  color = "#f7bb4f",
+  alpha = 0.2
+)+
+# Highlight hours of operation
+#geom_rect(aes(xmin=hms("10:00:00"),xmax=hms("17:00:00"),ymin=-Inf,ymax=Inf),alpha=0.3, size= .05 , color="#58595b", fill=NA)+
+# Set y-axis range zoom into data
+ylim(0, 10000) +
+# Custom x-axis time labels
+scale_x_time(breaks = c(hms("00:00:00"),hms("06:00:00"), hms("12:00:00"), hms("18:00:00"),hms("24:00:00")), labels = c("Midnight", "6 AM", "Noon", "6 PM", "Midnight"))  +
+# Chart label text
+labs(title = "When fires start",
+  subtitle = "Fires smaller than 10,000 acres",
+  x = "Time of day",
+  y = "Acres burned",
+  caption = "Source: CalFire") +
+  # Chart style
+  theme(
+    text=element_text(size=12,family="BentonGothic-Regular"),
+    #title
+    plot.title = element_text(
+      size = 18,
+      family = "BentonGothic-Bold",
+      #hjust = 0.5,
+      lineheight = 1.2
+    ),
+    # remove default grid
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    # caption
+    plot.caption = element_text(
+      family = "BentonGothic-Light"
+      ),
+    # x-axis ticks
+    axis.ticks.x = element_line(
+      color = "#a7a9ac"
+    ),
+    # y-axis ticks
+    axis.ticks.y = element_blank(),
+    panel.grid.major.y =  element_line(
+      color = "#a7a9ac",
+      linetype = 3,
+      lineend = "butt"
+    )
+  )
+```
+When looking at a subset of fires larger than 10,000 acres burned, the ratio is closer to 1:1. 
+
+*57* (53.3%) of large wildfires occured outside the operating hours while *50* (46.7%) occured during.
+
+```{r chart}
+# Let's filter for fires that are larger than 300 acres
+master_data_cleaned_large_fires <- master_data_cleaned %>%
+  filter(master_data_cleaned$acres_burned >= 10000)
+
+# How many large fires occurred during hours of operation?
+large_fires_during_hours <- master_data_cleaned_large_fires  %>%
+filter(hms(time_24hh) >= hms("10:00:00") & hms(time_24hh) <= hms("17:00:00"))
+summary(fires_during_hours)
+
+# How many large fires occurred outside hours of operation?
+large_fires_outside_hours <- master_data_cleaned_large_fires  %>%
+filter(hms(time_24hh) < hms("10:00:00") | hms(time_24hh) > hms("17:00:00"))
+
+ggplot(data = master_data_cleaned_large_fires, aes(x = time_24hh, y = acres_burned)) +
+geom_point(
+  data = large_fires_outside_hours, aes(x = time_24hh, y = acres_burned),
+  shape = 21,
+  stroke = .5,
+  fill = "#b75a36",
+  color = "#b75a36",
+  alpha = 0.5
+) +
+geom_point(
+  data = large_fires_during_hours, aes(x = time_24hh, y = acres_burned),
+  shape = 21,
+  stroke = .5,
+  fill = "#f7bb4f",
+  color = "#f7bb4f",
+  alpha = 0.2
+)+
+#
+scale_y_continuous(breaks = c(10000, 150000, 250000), labels = c("10,000","150,000", "250,000")) +
+# Custom x-axis time labels
+scale_x_time(breaks = c(hms("00:00:00"),hms("06:00:00"), hms("12:00:00"), hms("18:00:00"),hms("24:00:00")), labels = c("Midnight", "6 AM", "Noon", "6 PM", "Midnight"))  +
+# Chart label text
+labs(title = "When large fires start",
+  subtitle = "Greater than 10,000 acres",
+  x = "Time of day",
+  y = "Acres burned",
+  caption = "Source: CalFire") +
+  # Chart style
+  theme(
+    text=element_text(size=12,family="BentonGothic-Regular"),
+    #title
+    plot.title = element_text(
+      size = 18,
+      family = "BentonGothic-Bold",
+      #hjust = 0.5,
+      lineheight = 1.2
+    ),
+    # remove default grid
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    # caption
+    plot.caption = element_text(
+      family = "BentonGothic-Light"
+      ),
+    # x-axis ticks
+    axis.ticks.x = element_line(
+      color = "#a7a9ac"
+    ),
+    # y-axis ticks
+    axis.ticks.y = element_blank(),
+    panel.grid.major.y =  element_line(
+      color = "#a7a9ac",
+      linetype = 3,
+      lineend = "butt"
+    )
+  )
+```
+
+A slightly different and narrower way to look at the data is to look the distribution of reported time starts, regardless of the size of fire. This will offer a more direct view of when fire occurences have started the most.
+
+```{r histogram}
+# Is there certain time of day a fires will break out the most?
+
+```
+
+## Conclusion
+**What we do know** While the data does show that most fires overall have happened during general aircraft operation hours, that percentage starts to fall off the larger the fire gets. It might be worth pursuing on the larger fire subset as a reference point/line of reporting.
+
+**What we don't know** It's difficult to come to definitive conclusions on the efficacy of using these planes to fight fires based on this data alone, but perhaps the reporter has more insight or avenues of reporting to explore based on this analysis.
+
+Finding a direct causal relationship or even a strong correlation that connects fire aircrafts and their efficiency against fighting wildfires would be difficult from a data perspective. We'd need to also be able to capture other information like each fire's fuel type, if a flag warning was issued before the event/other weather conditions, if an aircraft was used and the time and day(s) they were used, overnight conditions, as well as daily shapefile data that would capture the interday growth rate.
+
+There is no one data warehouse to get all this information from my experience working with CALFIRE/USGS agencies. Some of the data is not consistently documented/exist, or would require some heavy legwork with reporting. 
+
+///-30-///
+
+```{r eval=FALSE, include=FALSE}
+library(ggridges)
+
+theme_set(theme_ridges())
+ggplot(data = master_data_cleaned, aes(x = time_24hh, y = year_only)) +
+  geom_density_ridges(
+    aes(fill = acres_burned, y = year_only),
+    scale = 3,
+    fill = "#b75a36",
+    size = 0.3
+    ) +
+scale_x_time(breaks = c(hms("00:00:00"),hms("06:00:00"), hms("12:00:00"), hms("18:00:00"),hms("24:00:00")), labels = c("Midnight", "6 AM", "Noon", "6 PM", "Midnight"))  +
+  labs(title = 'Count of fires by time of day and year') +
+  # Highlight hours of operation
+ geom_rect(aes(xmin=hms("10:00:00"),xmax=hms("17:00:00"),ymin=-Inf,ymax=Inf),alpha=0.7, size= .05 , color="black", fill=NA) +
+  # Chart style
+  theme(
+    text=element_text(size=12,family="BentonGothic-Regular"),
+    axis.text.x = element_text(size=8),
+    axis.text.y = element_text(size=8),
+    #title
+    plot.title = element_text(
+      size = 14,
+      family = "BentonGothic-Bold"
+      #hjust = 0.5,
+      #lineheight = 1.2
+    ),
+    # remove default grid
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+     # x-axis ticks
+    axis.ticks.x = element_blank(),
+    # y-axis ticks
+    axis.ticks.y = element_blank(),
+    panel.grid.major.y =  element_blank()
+    )
+
+
+# modified dataset that represents species as a number
+#ridges_temp <- master_data_cleaned
+#ridges_temp$time_24hh_copy = ridges_temp$time_24hh
+#transform(ridges_temp, time_24hh_copy = as.character(time_24hh_copy))
+```
+
+
+
+```{r facet, eval=FALSE, fig.height=9, fig.width=2.5, include=FALSE}
+# Automatic scale selection
+ggplot(data = master_data_cleaned, aes(x = time_24hh, y = acres_burned)) + geom_point(
+  shape = 21,
+  stroke = .5,
+  fill = "#b75a36",
+  color = "#b75a36",
+  alpha = .4
+) +
+facet_wrap( ~ year_only, ncol = 1) +
+  # Chart label text
+  labs(title = "When fires start",
+       x = "Time of day",
+       y = "Acres burned",
+       caption = "Source: CalFire") +
+  # Chart style
+  theme(
+    text=element_text(size=12,family="BentonGothic-Regular"),
+    #title
+    plot.title = element_text(
+      size = 18,
+      family = "BentonGothic-Bold",
+     # hjust = 0.5,
+      lineheight = 1.2
+    ),
+    # remove default grid
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    # caption
+    plot.caption = element_text(
+      family = "BentonGothic-Light"
+      ),
+    # x-axis ticks
+    axis.ticks.x = element_line(
+      color = "#a7a9ac"
+    ),
+    # y-axis ticks
+    axis.ticks.y = element_blank(),
+    panel.grid.major.y =  element_line(
+      color = "#a7a9ac",
+      linetype = 3,
+      lineend = "butt"
+    )
+  )
+```
+
