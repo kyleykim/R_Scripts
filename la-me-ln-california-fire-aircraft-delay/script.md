@@ -61,7 +61,7 @@ Analysis
 
 According to [CAL FIRE's general flight rules and operations handbook](http://calfireweb.fire.ca.gov/library/handbooks/8300/8362.pdf), an aircraft's window of operation is during "daylight hours" (pg. 11) and a pilot of a single-pilot aircraft is limited to seven hours of flight time in a 24-hour period (pg. 10).
 
-The reporter said according to CALFIRE, the general hours of operation we could set for visualization purposes can be between 10 AM and 5PM throughout the year. We used those hours for the analysis.
+According to CALFIRE, the general hours of operation we could set for visualization purposes can be between 10 AM and 5PM throughout the year. We used those hours for the analysis.
 
 ``` r
 # Base summary of data
@@ -381,6 +381,6 @@ Conclusion
 
 Ideally, we'd need to be able to capture other information like each fire's fuel type, if a flag warning was issued before the event/other weather conditions, **if an aircraft was used and the time and day(s) they were used**, overnight conditions, as well as daily shapefile data that would capture the interday growth rate.
 
-There is no one data warehouse to get all this information based on my experience working with CALFIRE/USGS agencies. Some of the data is not consistently documented/exist, or would require some heavy legwork with reporting.
+There is no one data warehouse to get all this information based on my experience working with CALFIRE/USGS agencies. Some of the data is not consistently documented/exists.
 
 It might be worth pursuing further the pattern that seems to show that the larger fires have more often occured outside operation hours vs. fires under 10,000 acres as a reference point/line of reporting.
