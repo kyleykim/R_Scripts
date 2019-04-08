@@ -1,4 +1,4 @@
-This is an analysis and visualization of when wildfires in California have started to assist the reporting of \[Firefighting aircraft ‘increasingly ineffective’ amid worsening wildfires\]<https://www.latimes.com/local/california/la-me-aircraft-increasingly-ineffective-against-california-wildfires-20190407-story.html>), which looks at the efficacy and effectiveness of fire aircraft deployment.
+This is an analysis and visualization of when wildfires in California have started to assist the reporting of [Firefighting aircraft ‘increasingly ineffective’ amid worsening wildfires](https://www.latimes.com/local/california/la-me-aircraft-increasingly-ineffective-against-california-wildfires-20190407-story.html), which looks at the efficacy and effectiveness of fire aircraft deployment.
 
 The analysis uses data scraped from [CAL FIRE's incidents database](http://cdfdata.fire.ca.gov/incidents/incidents_archived?archive_year=2018), which provides fire incident information for fires within and outside the agency's jurisdictions back to 2003. [Go here](http://cdfdata.fire.ca.gov/incidents/incidents_disclaimer) if you'd like to read more information about the data.
 
